@@ -1,0 +1,28 @@
+{
+  "customer_a": {
+    "inventory_url": "http://127.0.0.1:8001/erp/inventory",
+    "mapping_id": "customer_a"
+  },
+  "customer_b": {
+    "inventory_url": "http://127.0.0.1:8001/erp/customer_b/inventory",
+    "mapping_id": "erp_itemcode_v1"
+  },
+"customer_d": {
+  "inventory_url": "http://127.0.0.1:8001/erp/customer_d/inventory",
+  "transfer_url": "http://127.0.0.1:8001/erp/customer_d/transfers",
+  "transfer_lookup_url": "http://127.0.0.1:8001/erp/customer_d/transfers/by-key",
+  "paginated_inventory_url": "http://127.0.0.1:8001/erp/customer_d/inventory/paginated",
+  "mapping_id": "erp_itemcode_v1",
+  "mapping_overrides": {
+    "warehouse": "depot"
+  },
+  "source_version_field": "revision"
+},
+"customer_e": {
+  "inventory_url": "http://127.0.0.1:8001/erp/customer_e/inventory",
+  "paginated_inventory_url": "http://127.0.0.1:8001/erp/customer_e/inventory/paginated",
+  "mapping_id": "customer_e_v1",
+  "source_version_field": "revision"
+}
+
+}

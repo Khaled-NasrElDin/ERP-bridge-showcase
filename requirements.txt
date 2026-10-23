@@ -1,0 +1,8 @@
+# Conservative compatibility bounds, not locked dependencies.
+# Full reproducibility should be established with a separately generated lockfile.
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+httpx>=0.27,<1
+pydantic>=2,<3
+SQLAlchemy>=2,<3
+pytest>=8,<10

@@ -1,156 +1,86 @@
-# ERP Bridge
+# ERP Bridge: Runnable FastAPI backend
 
-### Multi-Tenant ERP Integration & Inventory Synchronization
+This directory contains a substantial, **real runnable implementation** of the ERP Bridge learning prototype, not the JavaScript-only showcase. It uses fictional sample data and locally hosted mock ERP APIs.
 
-**A Python / FastAPI engineering prototype exploring how heterogeneous ERP systems can exchange inventory data reliably through a canonical model.**
+It includes the original Python architecture for tenant-specific JSON mappings, canonical normalization, REST integration, SQLite persistence, version-aware paginated synchronization, checkpoints, approval-gated mock ERP write-back, reconciliation and observability.
 
-[Explore the architecture](docs/architecture.md) · [See the operations console](#operations-console) · [Run the public examples](#run-the-public-examples) · [Security & limitations](docs/security-and-limitations.md)
+## Run locally (Python 3.10 or newer)
 
-![ERP Bridge operations console — local prototype screenshot](docs/assets/operations-console.png)
-
-*Actual screenshot from the local ERP Bridge operations console; values come from a simulated ERP environment.*
-
----
-
-## The problem
-
-ERP integrations tend to accumulate customer-specific adapters: one system calls a product identifier `product_id`, another uses `itemCode`; stock quantities, warehouses, and inventory formats vary as well. A successful connection is not enough: integrations must also handle incomplete payloads, interrupted transfers, duplicate operations, and ambiguous upstream outcomes.
-
-**ERP Bridge** is a personal engineering project built to experiment with those problems in a controlled, multi-tenant inventory workflow. It uses simulated upstream ERP APIs and a local relational database; **it is not a deployed, production-secured integration service.**
-
-## Capabilities in the private prototype
-
-| Area | Demonstrated behavior |
-| --- | --- |
-| **Multi-tenant inventory** | Per-tenant configuration and inventory records keyed by tenant, SKU, and warehouse |
-| **Canonical normalization** | JSON-driven external-to-internal field mappings, schema inspection, and tenant-specific overrides |
-| **Inventory synchronization** | Validation before database writes, database upsert patterns, and page-level commits |
-| **Pagination and recovery** | Tracked synchronization runs, checkpoints, sequential page handling, and recovery from the last committed page |
-| **Version-aware writes** | Conditional updates that protect newer source versions from being replaced by older ones |
-| **Controlled ERP write-back** | Draft → approve → execute flow with idempotency identifiers and uncertain-outcome reconciliation |
-| **Observability** | Tenant-scoped request events, response status, elapsed time, run summaries, and alerts |
-| **Operations console** | Local interface for inventory, runs, transfers, monitoring, and API exploration |
-
-> **Scope:** These describe behavior implemented in the private learning prototype, not production-level guarantees. The public Python examples below are independent, intentionally simplified illustrations—not the private engine.
-
-## Architecture at a glance
-
-```mermaid
-flowchart LR
-    subgraph SOURCE[Simulated external ERP APIs]
-      A[ERP A]
-      B[ERP B]
-      C[ERP C]
-    end
-    subgraph BRIDGE[ERP Bridge · private FastAPI backend]
-      CFG[Tenant configurations + mapping overrides]
-      VAL[Schema inspection + canonical validation]
-      SYNC[Sync orchestration + paging]
-      WB[Approved transfer write-back]
-      OBS[Event logging + alert summaries]
-    end
-    DB[(SQLite · tenant inventory / runs / checkpoints / transfers)]
-    UI[Local operations console]
-    A & B & C -->|HTTP JSON| VAL
-    CFG --> VAL
-    VAL --> SYNC
-    SYNC <--> DB
-    WB <--> DB
-    WB -->|Approved HTTP transfer| C
-    SYNC --> OBS
-    WB --> OBS
-    OBS --> DB
-    UI -->|Local API| BRIDGE
-```
-
-*Conceptual view of the implemented local prototype; see the [detailed architecture](docs/architecture.md).*
-
-## Operations console
-
-The project's local console makes system behavior visible without having to inspect each API response separately. The real interface includes:
-
-- Tenant-level operational overview and inventory explorer
-- Tracked synchronization runs with pagination controls
-- Approval and execution controls for simulated warehouse transfers
-- Monitoring and alerts for recent integration activity
-- API lab linking to FastAPI's Swagger documentation
-
-**[View the static, browser-based portfolio demonstration](docs/index.html)** (open locally or enable GitHub Pages for this repository). This *public demonstration is a simulated interface*, not a connected ERP integration and cannot modify inventory in a real system.
-
-## Reliability decisions worth examining
-
-**Normalize before persisting.** External field names are resolved through a mapping and validated against a canonical inventory model; missing required fields can reject a batch before database writes.
-
-**Treat a page as a commit unit.** A page's inventory changes and its sync progress are committed together, allowing later work to resume from an acknowledged checkpoint.
-
-**Avoid overwriting newer records.** For versioned ERP feeds, conditional conflict updates preserve the latest known source revision.
-
-**Don't blindly retry side-effecting writes.** A warehouse transfer has an action ID and a state machine; when a remote outcome is uncertain, the prototype marks it for reconciliation rather than sending the same transfer without checking.
-
-**Separate tenants in storage.** The tenant ID participates in the inventory primary key and scopes inventory queries. **This does not substitute for authentication or authorization.**
-
-These engineering choices, trade-offs, and known limitations are expanded in [Architecture](docs/architecture.md) and [Security & limitations](docs/security-and-limitations.md).
-
-## Run the public examples
-
-The open portion is deliberately small, self-contained, and **uses synthetic data only**. It demonstrates readable Python, mapping overrides, discrepancy detection, and automated tests without publishing the original business logic.
-
-Prerequisite: **Python 3.10+**. No external packages or database are required for these samples.
+Open a terminal in the `backend` directory and create a virtual environment:
 
 ```bash
-python -m examples.run_demo
-python -m unittest discover -s tests -v
+python -m venv .venv
 ```
 
-To preview the static HTML showcase:
+Activate it:
+
+- Windows PowerShell: `.venv\Scripts\Activate.ps1`
+- macOS/Linux: `source .venv/bin/activate`
+
+Install dependencies and create a fresh local SQLite database:
 
 ```bash
-python -m http.server 8080 --directory docs
+python -m pip install -r requirements.txt
+python dev_bootstrap.py
 ```
 
-Then open `http://127.0.0.1:8080` in your browser. (This is not the real FastAPI console.)
+**Terminal 1**, still inside `backend`:
 
-## Repository contents
-
-```text
-erp-bridge-showcase/
-├── README.md
-├── docs/
-│   ├── index.html                # Static, synthetic portfolio experience
-│   ├── assets/operations-console.png
-│   ├── architecture.md
-│   ├── security-and-limitations.md
-│   └── demo-walkthrough.md
-├── examples/
-│   ├── sample_mapping.py         # Standalone, illustrative mapping logic
-│   ├── sample_reconciliation.py # Standalone, illustrative data checks
-│   └── run_demo.py
-├── tests/                        # Tests for the public examples only
-└── .github/workflows/ci.yml
+```bash
+python -m uvicorn mock_erp:app --host 127.0.0.1 --port 8001
 ```
 
-## Technology stack
+**Terminal 2**, also inside `backend`:
 
-**Private application:** Python · FastAPI · Pydantic · HTTPX · SQLAlchemy · SQLite · JSON configuration · HTML / CSS / JavaScript.
+```bash
+python -m uvicorn main:app --host 127.0.0.1 --port 8000
+```
 
-**Public examples:** Python standard library · `unittest` · GitHub Actions CI.
+Now open:
 
-## What is intentionally not included
+- Operations console: http://127.0.0.1:8000/console
+- FastAPI interactive API documentation: http://127.0.0.1:8000/docs
+- Health: http://127.0.0.1:8000/health
 
-The full FastAPI backend, original tenant configuration engine, synchronization orchestration, write-back handling, database models, and local console implementation live in a **separate private repository**. The public examples have been written as *illustrative standalone code*, not extracted wholesale from the private project.
+### Try real synchronization against the mock ERP
 
-This boundary protects the original implementation from unauthenticated source access. It does **not** prevent someone from copying screenshots, designs, or code that is deliberately public.
+With both servers running, open another terminal:
 
-## Status and roadmap
+```bash
+curl -X POST http://127.0.0.1:8000/tenants/customer_d/sync-all-pages
+curl http://127.0.0.1:8000/tenants/customer_d/inventory
+```
 
-**Status:** Local engineering prototype with simulated ERP connectors; not a commercial or production deployment.
+The first API call makes real localhost HTTP requests to the mock ERP, normalizes and validates its records, and persists them into the local SQLite database. The second returns the stored tenant-specific inventory. This is **real backend execution with synthetic data**, not real customer integration.
 
-Potential next engineering steps: authentication and tenant authorization; consolidated database migrations; more isolated integration tests; resilient concurrency handling; broader reconciliation/reporting; containerized reproducible setup; and a more modular FastAPI application structure.
+For other endpoints, use Swagger UI. The mock transfer endpoints demonstrate approval, execution, idempotency identifiers and reconciliation states.
 
-## Author and usage
+## Run backend tests
 
-Built by **Khaled Nasr El Din** as an independent software engineering portfolio project.
+From within `backend`:
 
-[GitHub profile](https://github.com/Khaled-NasrElDin) · [LinkedIn](https://www.linkedin.com/in/khaled-nasreldin/)
+```bash
+python -m pytest tests -q
+```
 
-**Copyright © 2026 Khaled Nasr El Din. All rights reserved.** This showcase is provided for portfolio evaluation. No open-source license is granted for copying or adapting the code. GitHub's applicable platform terms still apply. Contact the author for reuse permissions.
+The test modules include isolated observability and operations-console tests, plus mapping contract checks.
+
+## Security and scope
+
+**Development use only. Do not expose this server to the public internet.**
+
+- There is no production authentication or tenant authorization. Tenant-specific database filters are not a substitute for access control.
+- The console restricts requests to loopback clients, which does not provide complete application security.
+- The backend should be run with `--host 127.0.0.1`, not `--host 0.0.0.0`.
+- The upstream addresses are set to localhost mock APIs in `tenants.json`. Do not point them at real systems without redesigning authentication, config protection, network controls and request policies.
+- SQLite is created locally as `inventory.db`, which must never be committed. The repository's top-level `.gitignore` excludes local database files and secrets.
+- The mock ERP stores some transfer state in memory, so a mock restart loses that state.
+- Some learning-stage routes and architectural shortcuts remain. Database migrations, security hardening, automated end-to-end coverage, and production deployment controls are out of scope.
+- Dependencies use ranges rather than a full lockfile.
+- The `docs/index.html` portfolio website elsewhere in this repository remains a **static simulation**. It does not call this backend.
+
+## What changed for this public edition
+
+This is based on the original private development source, with synthetic `tenants.json` and `mappings.json`. No local database or private development history is included. Two small cleanup changes were made in `main.py`: the health endpoint names ERP Bridge consistently, and the legacy `/dashboard` endpoint redirects to the working `/console` rather than referencing an unavailable HTML file. The current public edition omits older experimental diagnostic scripts; the core application modules and key isolated tests are included.
+
+The project is a **learning prototype**, not a production-secured ERP platform or a publicly hosted integration API.
