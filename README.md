@@ -1,86 +1,137 @@
-# ERP Bridge: Runnable FastAPI backend
+# ERP Bridge
 
-This directory contains a substantial, **real runnable implementation** of the ERP Bridge learning prototype, not the JavaScript-only showcase. It uses fictional sample data and locally hosted mock ERP APIs.
+### Multi-Tenant ERP Integration and Inventory Synchronization
 
-It includes the original Python architecture for tenant-specific JSON mappings, canonical normalization, REST integration, SQLite persistence, version-aware paginated synchronization, checkpoints, approval-gated mock ERP write-back, reconciliation and observability.
+**A runnable Python and FastAPI engineering project exploring how heterogeneous ERP systems exchange inventory data through a canonical model.**
 
-## Run locally (Python 3.10 or newer)
+ERP Bridge demonstrates API integration, configurable field mappings, tenant-specific inventory, recoverable synchronization, controlled write-back, and operational monitoring. It uses fictional tenant data and a local mock ERP server. It is a learning and portfolio prototype, not a production-secured integration platform.
 
-Open a terminal in the `backend` directory and create a virtual environment:
+**[Live interactive showcase](https://khaled-nasreldin.github.io/ERP-bridge-showcase/)** | **[Real Python backend](backend/)** | **[Architecture](docs/architecture.md)** | **[Security and limitations](docs/security-and-limitations.md)**
+
+![ERP Bridge operations console](docs/assets/operations-console.png)
+
+*Screenshot of the original local FastAPI operations console, using synthetic ERP data.*
+
+## Two ways to explore the project
+
+| Experience | What it demonstrates |
+| --- | --- |
+| **[Browser showcase](https://khaled-nasreldin.github.io/ERP-bridge-showcase/)** | A static HTML, CSS, and JavaScript demonstration with fictional data and simulated interactions. No backend server is connected. |
+| **[Runnable backend](backend/)** | Actual FastAPI routes, HTTP requests to a local mock ERP, JSON-driven mappings, SQLite persistence, synchronization logic, transfer workflows, and monitoring. |
+
+The browser showcase and the Python backend are separate experiences. The hosted website does not execute Python or perform real ERP transactions.
+
+## Engineering capabilities
+
+| Area | Implementation in the runnable backend |
+| --- | --- |
+| **Multi-tenant integration** | Tenant-specific configuration, inventory queries, and storage keys |
+| **Canonical data mapping** | External-to-internal JSON mappings, schema inspection, validation, and mapping overrides |
+| **Inventory synchronization** | HTTP ingestion from mock ERP APIs, normalization, and database upserts |
+| **Pagination and recovery** | Sequential page processing, synchronization runs, and persistent checkpoints |
+| **Version-aware updates** | Conditional updates designed to avoid replacing newer inventory revisions with older ones |
+| **Controlled write-back** | Draft, approve, and execute flow for mock warehouse transfers, with idempotency and reconciliation handling |
+| **Observability** | Integration events, request timing, run summaries, alerts, and a local operations console |
+
+For design decisions and trade-offs, see the [architecture documentation](docs/architecture.md).
+
+## Run the real backend locally
+
+**Requirements:** Python 3.10 or newer. Run these commands from the repository root:
 
 ```bash
+cd backend
 python -m venv .venv
 ```
 
-Activate it:
+Activate the environment:
 
-- Windows PowerShell: `.venv\Scripts\Activate.ps1`
-- macOS/Linux: `source .venv/bin/activate`
+- **Windows PowerShell:** `.venv\Scripts\Activate.ps1`
+- **macOS/Linux:** `source .venv/bin/activate`
 
-Install dependencies and create a fresh local SQLite database:
+Install dependencies and initialize the local database:
 
 ```bash
 python -m pip install -r requirements.txt
 python dev_bootstrap.py
 ```
 
-**Terminal 1**, still inside `backend`:
+Start the mock ERP server in one terminal, from `backend`:
 
 ```bash
 python -m uvicorn mock_erp:app --host 127.0.0.1 --port 8001
 ```
 
-**Terminal 2**, also inside `backend`:
+Start the ERP Bridge API in a second terminal, also from `backend`:
 
 ```bash
 python -m uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
-Now open:
+You can now access:
 
-- Operations console: http://127.0.0.1:8000/console
-- FastAPI interactive API documentation: http://127.0.0.1:8000/docs
-- Health: http://127.0.0.1:8000/health
+- **Operations console:** http://127.0.0.1:8000/console
+- **Interactive API documentation:** http://127.0.0.1:8000/docs
+- **Health endpoint:** http://127.0.0.1:8000/health
 
-### Try real synchronization against the mock ERP
+To try a genuine backend synchronization using *synthetic* records, open the API documentation and call `POST /tenants/customer_d/sync-all-pages`, followed by `GET /tenants/customer_d/inventory`. The first endpoint requests data from the local mock ERP, normalizes it, and stores it in SQLite. The second reads the persisted inventory.
 
-With both servers running, open another terminal:
+See [backend/README.md](backend/README.md) for additional instructions and limitations.
 
-```bash
-curl -X POST http://127.0.0.1:8000/tenants/customer_d/sync-all-pages
-curl http://127.0.0.1:8000/tenants/customer_d/inventory
-```
+## Tests and code examples
 
-The first API call makes real localhost HTTP requests to the mock ERP, normalizes and validates its records, and persists them into the local SQLite database. The second returns the stored tenant-specific inventory. This is **real backend execution with synthetic data**, not real customer integration.
-
-For other endpoints, use Swagger UI. The mock transfer endpoints demonstrate approval, execution, idempotency identifiers and reconciliation states.
-
-## Run backend tests
-
-From within `backend`:
+Run backend tests from inside `backend`:
 
 ```bash
 python -m pytest tests -q
 ```
 
-The test modules include isolated observability and operations-console tests, plus mapping contract checks.
+The repository also includes simplified, standalone public examples in [`examples/`](examples/) and separate standard-library tests in [`tests/`](tests/). From the repository root:
 
-## Security and scope
+```bash
+python -m examples.run_demo
+python -m unittest discover -s tests -v
+```
 
-**Development use only. Do not expose this server to the public internet.**
+**CI status:** The current GitHub Actions workflow runs the standalone public example tests. Backend test automation is a planned improvement; backend tests can already be run locally.
 
-- There is no production authentication or tenant authorization. Tenant-specific database filters are not a substitute for access control.
-- The console restricts requests to loopback clients, which does not provide complete application security.
-- The backend should be run with `--host 127.0.0.1`, not `--host 0.0.0.0`.
-- The upstream addresses are set to localhost mock APIs in `tenants.json`. Do not point them at real systems without redesigning authentication, config protection, network controls and request policies.
-- SQLite is created locally as `inventory.db`, which must never be committed. The repository's top-level `.gitignore` excludes local database files and secrets.
-- The mock ERP stores some transfer state in memory, so a mock restart loses that state.
-- Some learning-stage routes and architectural shortcuts remain. Database migrations, security hardening, automated end-to-end coverage, and production deployment controls are out of scope.
-- Dependencies use ranges rather than a full lockfile.
-- The `docs/index.html` portfolio website elsewhere in this repository remains a **static simulation**. It does not call this backend.
+## Repository layout
 
-## What changed for this public edition
+```text
+erp-bridge-showcase/
+├── backend/                     # Runnable FastAPI application and mock ERP
+│   ├── main.py
+│   ├── mapping_engine.py
+│   ├── db.py
+│   ├── mock_erp.py
+│   ├── writeback.py
+│   ├── observability.py
+│   ├── console_routes.py
+│   ├── bridge_console.html
+│   ├── tests/
+│   └── README.md
+├── docs/                        # Architecture, limitations, and static website
+│   ├── index.html
+│   └── assets/operations-console.png
+├── examples/                    # Standalone educational Python examples
+├── tests/                       # Tests for those standalone examples
+└── .github/workflows/ci.yml
+```
 
-This is based on the original private development source, with synthetic `tenants.json` and `mappings.json`. No local database or private development history is included. Two small cleanup changes were made in `main.py`: the health endpoint names ERP Bridge consistently, and the legacy `/dashboard` endpoint redirects to the working `/console` rather than referencing an unavailable HTML file. The current public edition omits older experimental diagnostic scripts; the core application modules and key isolated tests are included.
+## Technology stack
 
-The project is a **learning prototype**, not a production-secured ERP platform or a publicly hosted integration API.
+Python, FastAPI, Pydantic, HTTPX, SQLAlchemy, SQLite, REST APIs, JSON configuration, HTML, CSS, JavaScript, pytest, unittest, and GitHub Actions.
+
+## Security and project scope
+
+**Run the backend on localhost only. Do not expose it to the public internet.** This prototype does not implement production authentication or tenant authorization. Tenant-specific database filtering is not access control. Mock ERP configurations point to `127.0.0.1`, and data is synthetic. Local database files, environment variables, and secrets should never be committed.
+
+The project also has learning-stage architectural limitations, including a lack of production-grade migrations, comprehensive end-to-end tests, and deployment hardening. See [backend/README.md](backend/README.md) and [Security and limitations](docs/security-and-limitations.md).
+
+## Author
+
+Built by **Khaled Nasr El Din** as an independent software engineering portfolio project.
+
+[GitHub](https://github.com/Khaled-NasrElDin) | [LinkedIn](https://www.linkedin.com/in/khaled-nasreldin/)
+
+**Copyright 2026 Khaled Nasr El Din. All rights reserved.** No open-source license is granted by this repository. Contact the author for reuse permissions.
