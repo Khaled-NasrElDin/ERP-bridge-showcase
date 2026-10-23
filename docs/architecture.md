@@ -20,7 +20,7 @@ sequenceDiagram
     Bridge->>Bridge: Load tenant + resolve mapping overrides
     Bridge->>ERP: GET configured inventory endpoint
     ERP-->>Bridge: JSON items
-    Bridge->>Bridge: Inspect required fields; normalize; validate
+    Bridge->>Bridge: Inspect required fields, normalize and validate
     alt Invalid batch
       Bridge-->>Operator: HTTP 422, inspection details
     else Valid batch
