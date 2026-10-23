@@ -1,4 +1,5 @@
 # ERP Bridge
+[![CI](https://github.com/Khaled-NasrElDin/ERP-bridge-showcase/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Khaled-NasrElDin/ERP-bridge-showcase/actions/workflows/ci.yml)
 
 ### Multi-Tenant ERP Integration and Inventory Synchronization
 
