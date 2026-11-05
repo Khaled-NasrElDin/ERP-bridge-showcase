@@ -1,11 +1,11 @@
 # ERP Bridge
 [![CI](https://github.com/Khaled-NasrElDin/ERP-bridge-showcase/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Khaled-NasrElDin/ERP-bridge-showcase/actions/workflows/ci.yml)
 
-### Multi-Tenant ERP Integration and Inventory Synchronization
+### Multi-Tenant ERP Integration: Inventory + Purchase Order Sandbox
 
 **A runnable Python and FastAPI engineering project exploring how heterogeneous ERP systems exchange inventory data through a canonical model.**
 
-ERP Bridge demonstrates API integration, configurable field mappings, tenant-specific inventory, recoverable synchronization, controlled write-back, and operational monitoring. It uses fictional tenant data and a local mock ERP server. It is a learning and portfolio prototype, not a production-secured integration platform.
+ERP Bridge demonstrates API integration, configurable field mappings, tenant-specific inventory, recoverable synchronization, controlled write-back, and operational monitoring. The `feature/erpbridge-v2` development branch additionally introduces modular API routers and a synthetic purchase-order integration sandbox with source-sequenced reconciliation and guarded mock ETA updates. It uses fictional tenant data and a local mock ERP server. It is a learning and portfolio prototype, not a production-secured integration platform.
 
 **[Live interactive showcase](https://khaled-nasreldin.github.io/ERP-bridge-showcase/)** | **[Real Python backend](backend/)** | **[Architecture](docs/architecture.md)** | **[Security and limitations](docs/security-and-limitations.md)**
 
@@ -34,7 +34,7 @@ The browser showcase and the Python backend are separate experiences. The hosted
 | **Controlled write-back** | Draft, approve, and execute flow for mock warehouse transfers, with idempotency and reconciliation handling |
 | **Observability** | Integration events, request timing, run summaries, alerts, and a local operations console |
 
-For design decisions and trade-offs, see the [architecture documentation](docs/architecture.md).
+For design decisions and trade-offs, see the [architecture documentation](docs/architecture.md) and [v2 modular architecture](docs/v2-architecture.md).
 
 ## Run the real backend locally
 
@@ -77,7 +77,7 @@ You can now access:
 
 To try a genuine backend synchronization using *synthetic* records, open the API documentation and call `POST /tenants/customer_d/sync-all-pages`, followed by `GET /tenants/customer_d/inventory`. The first endpoint requests data from the local mock ERP, normalizes it, and stores it in SQLite. The second reads the persisted inventory.
 
-See [backend/README.md](backend/README.md) for additional instructions and limitations.
+See [backend/README.md](backend/README.md) for v2 setup, sandbox API, testing instructions, and limitations. The root `main` branch remains the original v1 release.
 
 ## Tests and code examples
 
@@ -94,14 +94,16 @@ python -m examples.run_demo
 python -m unittest discover -s tests -v
 ```
 
-**CI status:** The current GitHub Actions workflow runs the standalone public example tests. Backend test automation is a planned improvement; backend tests can already be run locally.
+**CI status:** The GitHub Actions workflow runs public examples and backend tests. The v2 branch adds the isolated PO regression demo to CI.
 
 ## Repository layout
 
 ```text
 erp-bridge-showcase/
 ├── backend/                     # Runnable FastAPI application and mock ERP
-│   ├── main.py
+│   ├── main.py               # Thin app composition root (v2)
+│   ├── api/                  # Modular HTTP routers (v2)
+│   ├── po_engine/            # Separate synthetic PO integration core (v2)
 │   ├── mapping_engine.py
 │   ├── db.py
 │   ├── mock_erp.py

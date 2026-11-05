@@ -32,3 +32,7 @@ jobs:
       - name: Test real FastAPI backend
         working-directory: backend
         run: python -m pytest tests -q
+
+      - name: Run purchase-order integration regression simulation
+        working-directory: backend
+        run: python -m po_engine.demo

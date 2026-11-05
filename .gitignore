@@ -26,3 +26,7 @@ env/
 *.log
 .DS_Store
 Thumbs.db
+
+# Locally generated PO demo reports
+backend/technical.html
+backend/user.html
