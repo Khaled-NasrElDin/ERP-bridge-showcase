@@ -1,10 +1,12 @@
-
+import os
 from sqlalchemy import create_engine, String, Integer, Column
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Connect to our local SQLite database
-DATABASE_URL = "sqlite:///./inventory.db"
-
+DATABASE_URL = os.getenv(
+    "ERP_BRIDGE_DATABASE_URL",
+    "sqlite:///./inventory_v2.db"
+)
 engine = create_engine(DATABASE_URL)
 
 
